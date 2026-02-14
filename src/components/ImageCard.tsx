@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import CommentForm from './CommentForm'
 import CommentList from './CommentList'
 import LikeButton from './LikeButton'
+import ImageModal from './ImageModal'
 
 interface Comment {
   id: string
@@ -29,6 +30,8 @@ export default function ImageCard({
   const [likes, setLikes] = useState(0)
   const [showComments, setShowComments] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   useEffect(() => {
     fetchComments()
@@ -70,30 +73,60 @@ export default function ImageCard({
   }
 
   return (
-    <div className="image-card">
-      <div className="image-wrapper">
-        <img src={imageUrl} alt="Valentine photo" className="card-image" />
-      </div>
-      <div className="card-content">
-        <div className="card-header">
-          <span className="uploader-name">📸 {galleryUploaderName}</span>
+    <>
+      <div className={`image-card ${isCollapsed ? 'collapsed' : ''}`}>
+        <div className="image-wrapper" onClick={() => setShowModal(true)}>
+          <img src={imageUrl} alt="Valentine photo" className="card-image" />
         </div>
-        <div className="card-actions">
-          <LikeButton imageId={imageId} initialLikes={likes} onLikesUpdate={fetchLikes} />
-          <button
-            onClick={() => setShowComments(!showComments)}
-            className="comments-toggle"
-          >
-            💬 {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
-          </button>
-        </div>
-        {showComments && (
-          <div className="comments-section">
-            <CommentForm imageId={imageId} onCommentAdded={handleCommentAdded} />
-            {!loading && <CommentList comments={comments} />}
+        {!isCollapsed && (
+          <div className="card-content">
+            <div className="card-header">
+              <div className="header-title">
+                <span className="uploader-name">📸 {galleryUploaderName}</span>
+              </div>
+              <button
+                className="collapse-btn"
+                onClick={() => setIsCollapsed(true)}
+                title="Collapse"
+              >
+                ▼
+              </button>
+            </div>
+            <div className="card-actions">
+              <LikeButton imageId={imageId} initialLikes={likes} onLikesUpdate={fetchLikes} />
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="comments-toggle"
+              >
+                💬 {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
+              </button>
+            </div>
+            {showComments && (
+              <div className="comments-section">
+                <CommentForm imageId={imageId} onCommentAdded={handleCommentAdded} />
+                {!loading && <CommentList comments={comments} />}
+              </div>
+            )}
+          </div>
+        )}
+        {isCollapsed && (
+          <div className="card-collapsed">
+            <button
+              className="collapse-btn expand"
+              onClick={() => setIsCollapsed(false)}
+              title="Expand"
+            >
+              ▲
+            </button>
           </div>
         )}
       </div>
-    </div>
+      <ImageModal
+        imageUrl={imageUrl}
+        uploaderName={galleryUploaderName}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
+    </>
   )
 }

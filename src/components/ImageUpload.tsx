@@ -29,17 +29,22 @@ export default function ImageUpload({ onUploadComplete }: ImageUploadProps) {
 
     setUploading(true)
     try {
-      // Create a gallery entry
-      const { data: gallery, error: galleryError } = await supabase
+      // Create ONE gallery entry
+      const { data: galleryData, error: galleryError } = await supabase
         .from('galleries')
         .insert({ uploader_name: uploaderName })
         .select()
+        .single()
 
       if (galleryError) throw galleryError
+      if (!galleryData) throw new Error('Failed to create gallery')
 
-      const galleryId = gallery[0].id
+      const galleryId = galleryData.id
 
-      // Upload images
+      // Prepare all images for batch insert
+      const imagesToInsert = []
+
+      // Upload each image to storage
       for (const file of files) {
         const fileExt = file.name.split('.').pop()
         const fileName = `${galleryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
@@ -55,21 +60,30 @@ export default function ImageUpload({ onUploadComplete }: ImageUploadProps) {
           .from('valentine-images')
           .getPublicUrl(fileName)
 
-        // Add image record
-        await supabase.from('images').insert({
+        imagesToInsert.push({
           gallery_id: galleryId,
           image_url: data.publicUrl,
           file_path: fileName,
         })
       }
 
+      // Batch insert all images to the same gallery
+      if (imagesToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from('images')
+          .insert(imagesToInsert)
+
+        if (insertError) throw insertError
+      }
+
       setFiles([])
       setUploaderName('')
-      alert('Images uploaded successfully!')
+      alert(`Successfully uploaded ${files.length} image(s)!`)
       onUploadComplete()
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Error uploading images. Please try again.')
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Error uploading images: ${errorMsg}`)
     } finally {
       setUploading(false)
     }

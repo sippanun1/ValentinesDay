@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import ImageCard from './ImageCard'
+import GalleryFullView from './GalleryFullView'
 
 interface Image {
   id: string
   image_url: string
   gallery_id: string
+  file_path: string
 }
 
 interface Gallery {
@@ -25,6 +27,7 @@ interface GalleryProps {
 export default function Gallery({ refreshTrigger }: GalleryProps) {
   const [galleries, setGalleries] = useState<GalleryWithImages[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedGallery, setSelectedGallery] = useState<GalleryWithImages | null>(null)
 
   useEffect(() => {
     fetchGalleries()
@@ -67,6 +70,18 @@ export default function Gallery({ refreshTrigger }: GalleryProps) {
     return <div className="loading">Loading galleries...</div>
   }
 
+  if (selectedGallery) {
+    return (
+      <GalleryFullView
+        uploaderName={selectedGallery.uploader_name}
+        images={selectedGallery.images}
+        galleryId={selectedGallery.id}
+        onBack={() => setSelectedGallery(null)}
+        onImageAdded={fetchGalleries}
+      />
+    )
+  }
+
   if (galleries.length === 0) {
     return (
       <div className="empty-state">
@@ -79,6 +94,15 @@ export default function Gallery({ refreshTrigger }: GalleryProps) {
     <div className="gallery-container">
       {galleries.map((gallery) => (
         <div key={gallery.id} className="gallery-section">
+          <div className="gallery-header">
+            <h2>📸 {gallery.uploader_name}'s Gallery</h2>
+            <button
+              className="view-all-btn"
+              onClick={() => setSelectedGallery(gallery)}
+            >
+              View All ({gallery.images.length})
+            </button>
+          </div>
           <div className="gallery-grid">
             {gallery.images.map((image) => (
               <ImageCard
