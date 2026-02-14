@@ -220,6 +220,27 @@
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
 }
 
+.delete-gallery-btn {
+  background: rgba(255, 67, 67, 0.85);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.delete-gallery-btn:hover {
+  background: rgba(255, 0, 0, 1);
+  transform: scale(1.1);
+  box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+}
+
 .gallery-section.collapsed .gallery-grid {
   display: none;
 }
@@ -576,6 +597,12 @@
   .collapse-gallery-btn {
     width: 40px;
     height: 40px;
+  }
+
+  .delete-gallery-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
   }
 
   .gallery-images-grid {

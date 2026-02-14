@@ -77,6 +77,43 @@ export default function Gallery({ refreshTrigger }: GalleryProps) {
     setCollapsedGalleries(newCollapsed)
   }
 
+  const handleDeleteGallery = async (galleryId: string, uploaderName: string) => {
+    if (!confirm(`Are you sure you want to delete ${uploaderName}'s entire gallery? This will delete all images and comments.`)) {
+      return
+    }
+
+    try {
+      // Get all images in the gallery to delete from storage
+      const { data: images } = await supabase
+        .from('images')
+        .select('file_path')
+        .eq('gallery_id', galleryId)
+
+      // Delete files from storage
+      if (images && images.length > 0) {
+        const filePaths = images.map((img: { file_path: string }) => img.file_path)
+        await supabase.storage
+          .from('valentine-images')
+          .remove(filePaths)
+      }
+
+      // Delete gallery (cascade will delete images and comments)
+      const { error } = await supabase
+        .from('galleries')
+        .delete()
+        .eq('id', galleryId)
+
+      if (error) throw error
+
+      alert('Gallery deleted successfully!')
+      fetchGalleries()
+    } catch (error) {
+      console.error('Error deleting gallery:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Error deleting gallery: ${errorMsg}`)
+    }
+  }
+
   if (loading) {
     return <div className="loading">Loading galleries...</div>
   }
@@ -120,6 +157,13 @@ export default function Gallery({ refreshTrigger }: GalleryProps) {
                 title={collapsedGalleries.has(gallery.id) ? 'Expand' : 'Collapse'}
               >
                 {collapsedGalleries.has(gallery.id) ? '▲' : '▼'}
+              </button>
+              <button
+                className="delete-gallery-btn"
+                onClick={() => handleDeleteGallery(gallery.id, gallery.uploader_name)}
+                title="Delete entire gallery"
+              >
+                🗑️
               </button>
             </div>
           </div>
