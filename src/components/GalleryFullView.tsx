@@ -32,10 +32,17 @@ export default function GalleryFullView({
   onBack,
   onImageAdded,
 }: GalleryFullViewProps) {
-  const [selectedBg, setSelectedBg] = useState('bg-purple-gradient')
+  const [selectedBg, setSelectedBg] = useState(() => {
+    return localStorage.getItem('selectedBg') || 'bg-purple-gradient'
+  })
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+
+  const handleBgChange = (bgClass: string) => {
+    setSelectedBg(bgClass)
+    localStorage.setItem('selectedBg', bgClass)
+  }
 
   const handleAddImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
@@ -80,17 +87,33 @@ export default function GalleryFullView({
 
     setDeleting(imageId)
     try {
-      // Delete from storage
-      await supabase.storage.from('valentine-images').remove([filePath])
+      // Delete from database first
+      const { error: dbError } = await supabase
+        .from('images')
+        .delete()
+        .eq('id', imageId)
 
-      // Delete from database
-      await supabase.from('images').delete().eq('id', imageId)
+      if (dbError) {
+        console.error('Database error:', dbError)
+        throw new Error(`Database error: ${dbError.message}`)
+      }
 
+      // Then delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('valentine-images')
+        .remove([filePath])
+
+      if (storageError) {
+        console.error('Storage error:', storageError)
+        // Don't throw here as DB is already deleted
+      }
+
+      alert('Image deleted successfully!')
       onImageAdded()
     } catch (error) {
       console.error('Error deleting image:', error)
-      alert('Error deleting image')
-    } finally {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Error deleting image: ${errorMsg}`)
       setDeleting(null)
     }
   }
@@ -124,7 +147,7 @@ export default function GalleryFullView({
             <button
               key={bg.class}
               className={`bg-option ${selectedBg === bg.class ? 'active' : ''}`}
-              onClick={() => setSelectedBg(bg.class)}
+              onClick={() => handleBgChange(bg.class)}
               title={bg.name}
             >
               {bg.name}

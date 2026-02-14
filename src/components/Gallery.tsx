@@ -28,6 +28,7 @@ export default function Gallery({ refreshTrigger }: GalleryProps) {
   const [galleries, setGalleries] = useState<GalleryWithImages[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedGallery, setSelectedGallery] = useState<GalleryWithImages | null>(null)
+  const [collapsedGalleries, setCollapsedGalleries] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchGalleries()
@@ -66,6 +67,16 @@ export default function Gallery({ refreshTrigger }: GalleryProps) {
     }
   }
 
+  const toggleCollapsed = (galleryId: string) => {
+    const newCollapsed = new Set(collapsedGalleries)
+    if (newCollapsed.has(galleryId)) {
+      newCollapsed.delete(galleryId)
+    } else {
+      newCollapsed.add(galleryId)
+    }
+    setCollapsedGalleries(newCollapsed)
+  }
+
   if (loading) {
     return <div className="loading">Loading galleries...</div>
   }
@@ -93,27 +104,38 @@ export default function Gallery({ refreshTrigger }: GalleryProps) {
   return (
     <div className="gallery-container">
       {galleries.map((gallery) => (
-        <div key={gallery.id} className="gallery-section">
+        <div key={gallery.id} className={`gallery-section ${collapsedGalleries.has(gallery.id) ? 'collapsed' : ''}`}>
           <div className="gallery-header">
             <h2>📸 {gallery.uploader_name}'s Gallery</h2>
-            <button
-              className="view-all-btn"
-              onClick={() => setSelectedGallery(gallery)}
-            >
-              View All ({gallery.images.length})
-            </button>
+            <div className="gallery-header-actions">
+              <button
+                className="view-all-btn"
+                onClick={() => setSelectedGallery(gallery)}
+              >
+                View All ({gallery.images.length})
+              </button>
+              <button
+                className="collapse-gallery-btn"
+                onClick={() => toggleCollapsed(gallery.id)}
+                title={collapsedGalleries.has(gallery.id) ? 'Expand' : 'Collapse'}
+              >
+                {collapsedGalleries.has(gallery.id) ? '▲' : '▼'}
+              </button>
+            </div>
           </div>
-          <div className="gallery-grid">
-            {gallery.images.map((image) => (
-              <ImageCard
-                key={image.id}
-                imageId={image.id}
-                imageUrl={image.image_url}
-                galleryUploaderName={gallery.uploader_name}
-                onCommentAdded={fetchGalleries}
-              />
-            ))}
-          </div>
+          {!collapsedGalleries.has(gallery.id) && (
+            <div className="gallery-grid">
+              {gallery.images.map((image) => (
+                <ImageCard
+                  key={image.id}
+                  imageId={image.id}
+                  imageUrl={image.image_url}
+                  galleryUploaderName={gallery.uploader_name}
+                  onCommentAdded={fetchGalleries}
+                />
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
